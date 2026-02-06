@@ -1,0 +1,15 @@
+{
+  "projectType": "playwright-e2e",
+  "description": "PackToYou E2E 테스트 프로젝트",
+  "agents": {
+    "playwright-analyzer": {
+      "description": "Playwright 오류 로그를 분석하고 테스트 코드 작성",
+      "instructions": ".claude/agent/playwright-analyzer.md"
+    }
+  },
+  "context": {
+    "frontendPath": "../frontend/src",
+    "testPath": "./tests",
+    "reportPath": "./playwright-report"
+  }
+}
