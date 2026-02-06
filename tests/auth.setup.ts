@@ -54,7 +54,40 @@ setup('회원가입 및 로그인', async ({ page }) => {
     console.log('로그인 완료');
   }
 
-  // === 인증 상태 저장 ===
+  // === 언어를 한국어로 전환 ===
+  // LocaleContext 우선순위: user.language > localStorage['language'] > 'en'
+  // AuthContext는 localStorage['packtoyou_user']에서 user 객체를 읽으므로,
+  // packtoyou_user.language를 'ko'로 설정해야 다음 테스트에서도 한국어가 유지됨
+  await page.waitForLoadState('networkidle');
+
+  // 1) localStorage에 한국어 설정 (packtoyou_user 포함)
+  await page.evaluate(() => {
+    localStorage.setItem('language', 'ko');
+    const userStr = localStorage.getItem('packtoyou_user');
+    if (userStr) {
+      try {
+        const user = JSON.parse(userStr);
+        user.language = 'ko';
+        localStorage.setItem('packtoyou_user', JSON.stringify(user));
+      } catch { /* ignore */ }
+    }
+  });
+
+  // 2) UI 셀렉트로도 한국어 선택 (i18n 즉시 반영)
+  const langSelect = page.locator('select').filter({ hasText: 'English' });
+  if (await langSelect.isVisible()) {
+    await langSelect.selectOption('ko');
+    await page.waitForLoadState('networkidle');
+    console.log('UI 셀렉트로 한국어 전환 완료');
+  }
+
+  // 3) 리로드 후 한국어 적용 확인
+  await page.reload();
+  await page.waitForLoadState('networkidle');
+  await expect(page.getByRole('heading', { name: '대시보드' })).toBeVisible({ timeout: 10000 });
+  console.log('한국어 전환 확인 완료');
+
+  // === 인증 상태 저장 (한국어 설정 포함) ===
   await page.context().storageState({ path: authFile });
   console.log(`인증 상태 저장: ${authFile}`);
 });

@@ -16,15 +16,15 @@ test.describe('Carriers Module - 택배사 연동', () => {
         await expect(carrierSelect.locator('option')).toHaveCount(10); // 9 carriers + placeholder
 
         // And: 개별 택배사 확인
-        await expect(carrierSelect.locator('option:has-text("CJ대한통운")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("한진택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("롯데택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("로젠택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("우체국")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("UPS")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("FedEx")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("DHL")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("기타")')).toBeVisible();
+        await expect(carrierSelect).toContainText('CJ대한통운');
+        await expect(carrierSelect).toContainText('한진택배');
+        await expect(carrierSelect).toContainText('롯데택배');
+        await expect(carrierSelect).toContainText('로젠택배');
+        await expect(carrierSelect).toContainText('우체국');
+        await expect(carrierSelect).toContainText('UPS');
+        await expect(carrierSelect).toContainText('FedEx');
+        await expect(carrierSelect).toContainText('DHL');
+        await expect(carrierSelect).toContainText('기타');
       }
     });
 
@@ -37,8 +37,8 @@ test.describe('Carriers Module - 택배사 연동', () => {
       const carrierFilter = page.locator('select').filter({ hasText: /전체 택배사/ });
       if (await carrierFilter.isVisible()) {
         // Then: 필터 옵션에 주요 택배사가 포함됨
-        await expect(carrierFilter.locator('option:has-text("CJ대한통운")')).toBeVisible();
-        await expect(carrierFilter.locator('option:has-text("한진택배")')).toBeVisible();
+        await expect(carrierFilter).toContainText('CJ대한통운');
+        await expect(carrierFilter).toContainText('한진택배');
 
         // And: 특정 택배사로 필터링
         await carrierFilter.selectOption('cj_logistics');
@@ -87,17 +87,20 @@ test.describe('Carriers Module - 택배사 연동', () => {
       await page.goto('/shipments');
       await page.waitForLoadState('networkidle');
 
-      // When: 배송 선택 후 일괄 발급 시도
-      const bodyCheckboxes = page.locator('tbody input[type="checkbox"]');
-      if (await bodyCheckboxes.count() > 0) {
-        await bodyCheckboxes.first().check();
+      // When: 테이블이 표시된 경우 배송 선택 후 일괄 발급 시도
+      const table = page.locator('table');
+      if (await table.isVisible()) {
+        const enabledCheckboxes = table.locator('tbody td input[type="checkbox"]:not([disabled])');
+        if (await enabledCheckboxes.count() > 0) {
+          await enabledCheckboxes.first().check();
 
-        const bulkIssueBtn = page.getByRole('button', { name: /일괄 발급|송장번호 일괄/ });
-        if (await bulkIssueBtn.isVisible() && await bulkIssueBtn.isEnabled()) {
-          await bulkIssueBtn.click();
+          const bulkIssueBtn = page.getByRole('button', { name: /일괄 발급|송장번호 일괄/ });
+          if (await bulkIssueBtn.isVisible() && await bulkIssueBtn.isEnabled()) {
+            await bulkIssueBtn.click();
 
-          // Then: 택배사 선택 UI가 표시됨
-          await expect(page.getByText('택배사 선택')).toBeVisible();
+            // Then: 택배사 선택 UI가 표시됨
+            await expect(page.getByText('택배사 선택').first()).toBeVisible();
+          }
         }
       }
     });
@@ -113,10 +116,10 @@ test.describe('Carriers Module - 택배사 연동', () => {
       const shipmentLink = page.locator('table tbody tr a').first();
       if (await shipmentLink.isVisible()) {
         await shipmentLink.click();
-        await expect(page.getByText('배송 상세')).toBeVisible();
+        await expect(page.getByText('배송 상세').first()).toBeVisible();
 
-        // Then: 배송 정보가 표시됨
-        await expect(page.getByText('배송 정보')).toBeVisible();
+        // Then: 배송 정보가 표시됨 (Card title is an HTML title attribute, not visible text)
+        await expect(page.locator('[title="배송 정보"]')).toBeVisible();
 
         // And: 배송 추적 관련 정보가 있으면 표시
         const trackingSection = page.getByText('배송 추적').or(page.getByText('배송 이력'));
@@ -154,11 +157,11 @@ test.describe('Carriers Module - 택배사 연동', () => {
       const carrierSelect = page.locator('select').filter({ hasText: /택배사/ });
       if (await carrierSelect.isVisible()) {
         // Then: 국내 주요 택배사 확인
-        await expect(carrierSelect.locator('option:has-text("CJ대한통운")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("한진택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("롯데택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("로젠택배")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("우체국")')).toBeVisible();
+        await expect(carrierSelect).toContainText('CJ대한통운');
+        await expect(carrierSelect).toContainText('한진택배');
+        await expect(carrierSelect).toContainText('롯데택배');
+        await expect(carrierSelect).toContainText('로젠택배');
+        await expect(carrierSelect).toContainText('우체국');
       }
     });
 
@@ -170,9 +173,9 @@ test.describe('Carriers Module - 택배사 연동', () => {
       const carrierSelect = page.locator('select').filter({ hasText: /택배사/ });
       if (await carrierSelect.isVisible()) {
         // Then: 해외 주요 택배사 확인
-        await expect(carrierSelect.locator('option:has-text("UPS")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("FedEx")')).toBeVisible();
-        await expect(carrierSelect.locator('option:has-text("DHL")')).toBeVisible();
+        await expect(carrierSelect).toContainText('UPS');
+        await expect(carrierSelect).toContainText('FedEx');
+        await expect(carrierSelect).toContainText('DHL');
       }
     });
   });

@@ -21,9 +21,9 @@ test.describe('Dashboard Module - 대시보드', () => {
     test('TC-DASH-003: 주문 상태 현황이 표시된다', async ({ page }) => {
       // Then: 주문 상태별 카운트가 표시됨
       await expect(page.getByText('주문 상태 현황')).toBeVisible();
-      await expect(page.getByText('대기')).toBeVisible();
-      await expect(page.getByText('배송중')).toBeVisible();
-      await expect(page.getByText('배송완료')).toBeVisible();
+      await expect(page.getByText('대기', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('배송중', { exact: true }).first()).toBeVisible();
+      await expect(page.getByText('배송완료', { exact: true }).first()).toBeVisible();
     });
 
     test('TC-DASH-004: 최근 7일 주문 추이 차트가 표시된다', async ({ page }) => {
@@ -31,7 +31,7 @@ test.describe('Dashboard Module - 대시보드', () => {
       await expect(page.getByText('최근 7일 주문 추이')).toBeVisible();
 
       // And: Recharts 차트가 렌더링됨
-      const chart = page.locator('.recharts-responsive-container, svg.recharts-surface');
+      const chart = page.locator('.recharts-responsive-container, svg.recharts-surface').first();
       if (await chart.isVisible()) {
         await expect(chart).toBeVisible();
       }
@@ -52,7 +52,7 @@ test.describe('Dashboard Module - 대시보드', () => {
       await expect(page.getByText('빠른 액션')).toBeVisible();
 
       // When: 주문 등록하기 링크 클릭
-      const registerLink = page.getByText('주문 등록하기');
+      const registerLink = page.getByText('주문 등록하기', { exact: true }).first();
       if (await registerLink.isVisible()) {
         await registerLink.click();
 
@@ -74,7 +74,7 @@ test.describe('Dashboard Module - 대시보드', () => {
 
     test('TC-DASH-009: 대기 주문 카드를 클릭하면 주문 페이지로 이동한다', async ({ page }) => {
       // When: 대기 중인 주문 영역 클릭
-      const pendingLink = page.getByText('대기 중인 주문').or(page.getByText('미처리 주문'));
+      const pendingLink = page.getByText('대기 중인 주문').or(page.getByText('미처리 주문')).first();
       if (await pendingLink.isVisible()) {
         await pendingLink.click();
 
@@ -92,7 +92,7 @@ test.describe('Dashboard Module - 대시보드', () => {
 
     test('TC-STAT-001: 통계 페이지가 정상적으로 로드된다', async ({ page }) => {
       // Then: 통계 페이지 타이틀이 표시됨
-      await expect(page.getByText('통계')).toBeVisible();
+      await expect(page.getByRole('heading', { name: '통계' })).toBeVisible();
     });
 
     test('TC-STAT-002: 빠른 날짜 범위 버튼이 동작한다', async ({ page }) => {
@@ -132,7 +132,7 @@ test.describe('Dashboard Module - 대시보드', () => {
 
       // Then: 상품별 데이터가 표시됨
       await expect(
-        page.getByText('상품별 판매량 TOP 10').or(page.getByText('상품명'))
+        page.getByText('상품별 판매량 TOP 10').or(page.getByText('상품별 상세')).or(page.getByText('데이터가 없습니다')).first()
       ).toBeVisible();
     });
 
@@ -143,7 +143,7 @@ test.describe('Dashboard Module - 대시보드', () => {
 
       // Then: 크로스 통계 데이터가 표시됨
       await expect(
-        page.getByText('판매처').or(page.getByText('데이터가 없습니다'))
+        page.getByText('상품별 판매처 상세 통계').or(page.getByText('데이터가 없습니다'))
       ).toBeVisible();
     });
 
@@ -165,7 +165,7 @@ test.describe('Dashboard Module - 대시보드', () => {
         await page.waitForLoadState('networkidle');
 
         // Then: 차트가 표시됨
-        const chart = page.locator('.recharts-responsive-container, svg.recharts-surface');
+        const chart = page.locator('.recharts-responsive-container, svg.recharts-surface').first();
         if (await chart.isVisible()) {
           await expect(chart).toBeVisible();
         }

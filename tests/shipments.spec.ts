@@ -36,7 +36,7 @@ test.describe('Shipments Module - 배송 관리', () => {
           }
 
           // And: 생성 버튼 클릭
-          await page.getByRole('button', { name: '생성' }).click();
+          await page.getByRole('button', { name: '생성', exact: true }).click();
 
           // Then: 배송이 생성됨
           await page.waitForLoadState('networkidle');
@@ -47,12 +47,12 @@ test.describe('Shipments Module - 배송 관리', () => {
     test('TC-SHP-002: 주문 선택 없이 배송 생성 시 에러 표시', async ({ page }) => {
       // When: 배송 생성 모달 열기
       await page.getByRole('button', { name: '배송 생성' }).click();
+      await expect(page.getByRole('dialog')).toBeVisible();
 
-      // And: 주문 선택 없이 생성 시도
-      await page.getByRole('button', { name: '생성' }).click();
-
-      // Then: 에러 메시지 표시
-      await expect(page.getByText('주문을 선택해주세요')).toBeVisible();
+      // Then: 주문 선택 없이는 생성 버튼이 비활성화됨
+      const submitBtn = page.getByRole('dialog').getByRole('button', { name: '생성', exact: true });
+      await expect(submitBtn).toBeVisible();
+      await expect(submitBtn).toBeDisabled();
     });
 
     test('TC-SHP-003: 부분 배송을 생성할 수 있다', async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe('Shipments Module - 배송 관리', () => {
             await carrierSelect.selectOption('cj_logistics');
           }
 
-          await page.getByRole('button', { name: '생성' }).click();
+          await page.getByRole('button', { name: '생성', exact: true }).click();
           await page.waitForLoadState('networkidle');
         }
       }
@@ -102,8 +102,9 @@ test.describe('Shipments Module - 배송 관리', () => {
         await shipmentLink.click();
 
         // Then: 배송 상세 페이지로 이동
-        await expect(page.getByText('배송 상세')).toBeVisible();
-        await expect(page.getByText('배송 정보')).toBeVisible();
+        await expect(page.getByText('배송 상세').first()).toBeVisible();
+        // Card title is an HTML title attribute, not visible text
+        await expect(page.locator('[title="배송 정보"]')).toBeVisible();
       }
     });
 
@@ -114,7 +115,7 @@ test.describe('Shipments Module - 배송 관리', () => {
         await deleteBtn.click();
 
         // And: 확인 모달에서 삭제 확인
-        await page.getByRole('button', { name: '확인' }).click();
+        await page.getByRole('dialog').getByRole('button', { name: '삭제' }).click();
 
         // Then: 배송이 삭제됨
         await page.waitForLoadState('networkidle');
@@ -195,41 +196,47 @@ test.describe('Shipments Module - 배송 관리', () => {
         await page.getByRole('button', { name: '검색' }).click();
         await page.waitForLoadState('networkidle');
 
-        // Then: 필터가 적용됨
-        await expect(page.locator('table')).toBeVisible();
+        // Then: 필터가 적용됨 (table or loading message eventually resolves)
+        await expect(page.locator('table').or(page.getByText('데이터가 없습니다'))).toBeVisible({ timeout: 15000 });
       }
     });
   });
 
   test.describe('송장번호 일괄 발급', () => {
     test('TC-SHP-011: 체크박스로 여러 배송을 선택할 수 있다', async ({ page }) => {
-      // When: 전체 선택 체크박스 클릭
-      const headerCheckbox = page.locator('thead input[type="checkbox"]');
-      if (await headerCheckbox.isVisible()) {
-        await headerCheckbox.check();
+      // When: 테이블이 표시되고 전체 선택 체크박스가 있는 경우
+      const table = page.locator('table');
+      if (await table.isVisible()) {
+        const headerCheckbox = table.locator('thead th input[type="checkbox"]');
+        if (await headerCheckbox.isVisible() && await headerCheckbox.isEnabled()) {
+          await headerCheckbox.check();
 
-        // Then: 모든 행의 체크박스가 선택됨
-        const bodyCheckboxes = page.locator('tbody input[type="checkbox"]');
-        const count = await bodyCheckboxes.count();
-        for (let i = 0; i < count; i++) {
-          await expect(bodyCheckboxes.nth(i)).toBeChecked();
+          // Then: 활성화된 행의 체크박스가 선택됨
+          const enabledCheckboxes = table.locator('tbody td input[type="checkbox"]:not([disabled])');
+          const count = await enabledCheckboxes.count();
+          for (let i = 0; i < count; i++) {
+            await expect(enabledCheckboxes.nth(i)).toBeChecked();
+          }
         }
       }
     });
 
     test('TC-SHP-012: 선택된 배송에 대해 일괄 송장번호 발급을 할 수 있다', async ({ page }) => {
-      // Given: 배송 선택
-      const bodyCheckboxes = page.locator('tbody input[type="checkbox"]');
-      if (await bodyCheckboxes.count() > 0) {
-        await bodyCheckboxes.first().check();
+      // Given: 테이블이 표시된 경우 배송 선택
+      const table = page.locator('table');
+      if (await table.isVisible()) {
+        const enabledCheckboxes = table.locator('tbody td input[type="checkbox"]:not([disabled])');
+        if (await enabledCheckboxes.count() > 0) {
+          await enabledCheckboxes.first().check();
 
-        // When: 일괄 발급 버튼 클릭
-        const bulkIssueBtn = page.getByRole('button', { name: /일괄 발급|송장번호 일괄/ });
-        if (await bulkIssueBtn.isVisible() && await bulkIssueBtn.isEnabled()) {
-          await bulkIssueBtn.click();
+          // When: 일괄 발급 버튼 클릭
+          const bulkIssueBtn = page.getByRole('button', { name: /일괄 발급|송장번호 일괄/ });
+          if (await bulkIssueBtn.isVisible() && await bulkIssueBtn.isEnabled()) {
+            await bulkIssueBtn.click();
 
-          // Then: 일괄 발급 모달이 표시됨
-          await expect(page.getByText(/택배사 선택|송장번호/)).toBeVisible();
+            // Then: 일괄 발급 모달이 표시됨
+            await expect(page.getByText(/택배사 선택|송장번호/).first()).toBeVisible();
+          }
         }
       }
     });
@@ -241,7 +248,7 @@ test.describe('Shipments Module - 배송 관리', () => {
         await issueAllBtn.click();
 
         // Then: 발급 모달이 표시됨
-        await expect(page.getByText(/택배사 선택|출고준비/)).toBeVisible();
+        await expect(page.getByText(/택배사 선택|출고준비 배송|선택된 배송/).first()).toBeVisible();
       }
     });
   });

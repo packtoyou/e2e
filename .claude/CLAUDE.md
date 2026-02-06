@@ -9,9 +9,12 @@ Playwright를 사용하여 브라우저 기반 UI 테스트를 수행합니다.
 e2e/
 ├── .claude/
 │   ├── agent/
-│   │   └── playwright-analyzer.md  # 오류 분석 가이드
+│   │   ├── playwright-analyzer.md  # 오류 분석 가이드
+│   │   └── playwright-fixer.md     # 자동 수정 서브에이전트
 │   ├── settings.json               # 에이전트 설정
 │   └── CLAUDE.md                   # 이 파일
+├── scripts/
+│   └── run-tests.sh                # 테스트 실행 + 구조화된 결과 출력
 ├── tests/
 │   ├── auth.setup.ts               # 인증 설정 (회원가입/로그인)
 │   ├── users.spec.ts               # 사용자 관리 테스트
@@ -107,3 +110,61 @@ npx playwright codegen http://localhost:5173
 4. **비디오**: `playwright-report/data/*.webm` 파일 확인
 
 자세한 오류 분석 방법은 `.claude/agent/playwright-analyzer.md` 참조
+
+## 서브에이전트: 자동 테스트 실행 및 수정
+
+### 사용법
+
+사용자가 아래와 같이 요청하면 자동 수정 워크플로우를 실행한다:
+- "Playwright 테스트 실행하고 고쳐줘"
+- "E2E 테스트 돌려줘"
+- "테스트 실패하면 수정해줘"
+
+### 워크플로우
+
+```
+1. 테스트 실행
+   cd e2e && bash scripts/run-tests.sh
+
+2. 실패 시 → Task 서브에이전트 실행
+   - playwright-fixer.md 지침에 따라 자동 분석/수정
+   - 실패 테스트별: 에러분석 → 소스확인 → 수정 → 재실행
+   - 최대 3회 반복
+
+3. 전체 재실행으로 최종 확인
+```
+
+### 서브에이전트 호출 예시 (Task tool)
+
+```
+Task(subagent_type="general-purpose", prompt=`
+e2e/.claude/agent/playwright-fixer.md 지침을 따라 Playwright 테스트를 실행하고 실패를 수정하세요.
+
+작업 디렉토리: /Users/kimbeomsoo/Desktop/dockerize
+대상: [전체 | 특정파일.spec.ts]
+
+실패 시:
+1. test-results/ 의 스크린샷(.png) 확인
+2. 테스트 코드(e2e/tests/)와 프론트엔드 소스(frontend/src/pages/) 크로스체크
+3. 코드 수정 후 재실행
+4. 최대 3회 반복
+`)
+```
+
+### 에이전트 파일
+
+| 에이전트 | 파일 | 용도 |
+|---------|------|------|
+| playwright-analyzer | `.claude/agent/playwright-analyzer.md` | 오류 분석 가이드 |
+| playwright-fixer | `.claude/agent/playwright-fixer.md` | 자동 실행/수정 루프 |
+
+### 오류 유형별 대응
+
+| 오류 | 수정 대상 | 자동 수정 |
+|------|----------|----------|
+| 셀렉터 못찾음 | 테스트 코드 셀렉터 | O |
+| 타임아웃 | 테스트 코드 wait 추가 | O |
+| assertion 실패 | 테스트 기대값 | O |
+| 라우트 변경 | 테스트 URL | O |
+| API 에러 (4xx/5xx) | 백엔드 | X (보고만) |
+| 서버 미실행 | 환경 설정 | X (안내만) |

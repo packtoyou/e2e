@@ -5,6 +5,10 @@
     "playwright-analyzer": {
       "description": "Playwright 오류 로그를 분석하고 테스트 코드 작성",
       "instructions": ".claude/agent/playwright-analyzer.md"
+    },
+    "playwright-fixer": {
+      "description": "Playwright 테스트 자동 실행/분석/수정 루프 (최대 3회 반복)",
+      "instructions": ".claude/agent/playwright-fixer.md"
     }
   },
   "context": {
