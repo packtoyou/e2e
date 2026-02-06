@@ -1,5 +1,6 @@
 import { defineConfig, devices } from '@playwright/test';
 import path from 'path';
+import fs from 'fs';
 
 const authFile = path.join(__dirname, '.auth/user.json');
 
@@ -19,21 +20,20 @@ export default defineConfig({
   },
 
   projects: [
-    // 1. 먼저 회원가입/로그인 수행 (setup)
     {
       name: 'setup',
       testMatch: /auth\.setup\.ts/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // 2. setup 완료 후 테스트 실행
     {
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        storageState: authFile,  // 인증 상태 재사용
+        // 인증 파일이 있을 때만 사용
+        ...(fs.existsSync(authFile) ? { storageState: authFile } : {}),
       },
-      dependencies: ['setup'],  // setup 먼저 실행
-      testIgnore: /auth\.setup\.ts/,  // setup 파일은 제외
+      dependencies: ['setup'],
+      testIgnore: /auth\.setup\.ts/,
     },
   ],
 
